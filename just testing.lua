@@ -1327,11 +1327,37 @@ if not (Toggles["AutoMine"] or Toggles["FastMine"] or Toggles["AutoRebirth"] or 
 		end
 		-- === end respawn guard ===
 
-		-- if we're in Cyber area, teleport straight to Cyber's mine
+				-- if we're in Cyber area and have a last mine spot, teleport back to it
 		local curArea = DetectArea()
+		if curArea and curArea.name == "Cyber" and lastMineSpot then
+			areaPhaseText = "collapsed: teleporting back to last mine spot..."
+			print("[MS] In Cyber — teleporting back to lastMineSpot: " .. tostring(lastMineSpot))
+			local target = lastMineSpot + Vector3.new(0, 5, 0)   -- 5 studs up so we don't spawn inside a missing block
+			local t0 = os.clock()
+			repeat
+				local h = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+				if h then
+					h.Anchored = true
+					h.CFrame = CFrame.new(target)
+					task.wait(0.1)
+					h.Anchored = false
+				end
+				task.wait(0.2)
+			until os.clock() - t0 > 2 or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and (LocalPlayer.Character.HumanoidRootPart.Position - target).Magnitude < 15)
+			if gen ~= collapseGen then return end
+			collapseRecovering = false
+			recovering = false
+			areaTransit = false
+			TrackArea(true)
+			areaPhaseText = "recovered, resuming mining..."
+			print("[MS] Cyber lastMineSpot recovery done.")
+			return
+		end
+
+		-- fallback: if no lastMineSpot, go to Cyber's static mine position
 		if curArea and curArea.name == "Cyber" then
 			areaPhaseText = "collapsed: teleporting to Cyber mine..."
-			print("[MS] In Cyber — teleporting to Cyber mine spot.")
+			print("[MS] In Cyber (no lastMineSpot) — teleporting to Cyber mine spot.")
 			local target = curArea.mine
 			local t0 = os.clock()
 			repeat
@@ -1350,7 +1376,7 @@ if not (Toggles["AutoMine"] or Toggles["FastMine"] or Toggles["AutoRebirth"] or 
 			areaTransit = false
 			TrackArea(true)
 			areaPhaseText = "recovered, resuming mining..."
-			print("[MS] Cyber teleport recovery done.")
+			print("[MS] Cyber static mine recovery done.")
 			return
 		end
 
